@@ -3,6 +3,8 @@ import "./components/web-component.component";
 
 const { log } = console;
 
+// TODO: Split the code into files
+
 /*
 Adding more cards to the container
 */
@@ -408,7 +410,7 @@ function handleSwap(
     "closestItem.y": closestItem.y,
   });
   if (distance <= threshold) {
-    swapItems(draggedItem, closestItem, candidates);
+    swapItems(draggedItem, closestItem);
   }
 }
 function getClosestItem(
@@ -451,13 +453,8 @@ function getClosestItem(
   return closestItem;
 }
 
-function swapItems(
-  draggedItem: DraggableItem,
-  targetItem: DraggableItem,
-  candidates: DraggableItem[]
-) {
+function swapItems(draggedItem: DraggableItem, targetItem: DraggableItem) {
   const draggedElement = draggedItem.element;
-  const targetElement = targetItem.element;
 
   const draggedIndex = draggableItems.indexOf(draggedItem);
   const targetIndex = draggableItems.indexOf(targetItem);
