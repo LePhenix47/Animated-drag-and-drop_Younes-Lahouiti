@@ -20,7 +20,7 @@
     <meta property="og:url" content="https://younes-portfolio-dev.vercel.app/" />
 
     <!-- Title -->
-    <title>Title</title>
+    <title>Animated drag and drop</title>
 
     <!-- CSS -->
     <link rel="stylesheet" href="./dist/style.css" />
@@ -39,11 +39,26 @@
 <body>
     <header class="header">
         <svg class="hide header__svg-filters"></svg>
-        <h1 class="header__title" title="Title">Title</h1>
+        <h1 class="header__title" title="Title">Animated drag and drop</h1>
     </header>
 
     <main class="index">
+        <ul class="container" data-js="container">
 
+            <li class="draggable draggable__sample" data-js="sample" draggable>
+                <button class="draggable__handle">
+                    <span class="draggable__handle-icon no-pointer-events square-icon"
+                        aria-label="Draggable handle icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"
+                            fill="currentColor">
+                            <path
+                                d="M10 13a1 1 0 100-2 1 1 0 000 2zm-4 0a1 1 0 100-2 1 1 0 000 2zm1-5a1 1 0 11-2 0 1 1 0 012 0zm3 1a1 1 0 100-2 1 1 0 000 2zm1-5a1 1 0 11-2 0 1 1 0 012 0zM6 5a1 1 0 100-2 1 1 0 000 2z">
+                            </path>
+                        </svg>
+                    </span>
+                </button>
+            </li>
+        </ul>
     </main>
     <footer class="footer">
         <p class="footer__paragraph">

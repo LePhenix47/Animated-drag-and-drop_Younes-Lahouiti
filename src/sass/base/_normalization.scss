@@ -51,7 +51,10 @@
     }
 
     body {
+        display: grid;
+        grid-template-rows: [full-width-start header-start] auto [header-end main-start] 1fr [main-end footer-start] auto [footer-end full-width-end];
         min-height: 100svh;
+
         overflow-x: hidden;
         background-color: var(--bg-primary);
         color: var(--color-primary);
