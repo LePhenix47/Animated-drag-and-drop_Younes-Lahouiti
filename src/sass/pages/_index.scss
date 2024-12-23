@@ -1,3 +1,102 @@
 @use "../utils/" as *;
 
-.index {}
+.container {
+    width: 100%;
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--_gap);
+
+    position: relative;
+
+    --_gap: 10px;
+    --_cards-in-container: 10;
+    --_card-height: 150px;
+
+    @include mobile-only {
+        --_card-height: 75px;
+    }
+
+    min-height: calc((var(--_cards-in-container) - 1) * (var(--_card-height) + var(--_gap)) + var(--_card-height));
+}
+
+.draggable {
+    display: flex;
+
+    touch-action: none;
+
+    --_height: var(--_card-height);
+    height: var(--_height);
+    width: 100%;
+
+    --_x: 0px;
+    --_y: 0px;
+
+    --_max-y: calc(100% - var(--_height));
+
+    position: absolute;
+    top: clamp(0px, var(--_y), var(--_max-y));
+    left: 0;
+
+    background-color: grey;
+
+    transition: top 250ms ease-in-out, filter 250ms ease-in-out;
+
+    z-index: 0;
+
+    //   Doesn't work
+    &:not(.dragging) {
+        animation: z-index-hack 250ms ease-in-out backwards;
+    }
+
+    &.dragging {
+        // background-color: lightgrey;
+        filter: brightness(150%);
+        z-index: 1;
+        transition: filter 250ms ease-in-out;
+
+        cursor: grabbing;
+    }
+
+    &__sampe {
+        display: none;
+    }
+
+    &__handle {
+        background-color: var(--handle-bg);
+        color: var(--handle-color);
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        aspect-ratio: 1/1.5;
+
+        &:hover {
+            cursor: grab;
+        }
+
+        &:active {
+            cursor: grabbing;
+        }
+    }
+
+    &__handle-icon {
+        --_size: 64px;
+
+        @include mobile-only {
+            --_size: 42px;
+        }
+    }
+}
+
+@keyframes z-index-hack {
+    99.99% {
+        z-index: 1;
+    }
+
+    100% {
+        z-index: 0;
+    }
+}

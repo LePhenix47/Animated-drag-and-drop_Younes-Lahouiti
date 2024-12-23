@@ -7,6 +7,34 @@
     display: none !important;
 }
 
+@layer css-classes {
+    .square-icon {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+
+        --_size: 24px;
+        aspect-ratio: 1/1;
+        width: var(--_size);
+        height: var(--_size);
+
+        object-fit: contain;
+
+        &>svg {
+            width: inherit !important;
+            height: inherit !important;
+        }
+    }
+
+    button {
+        border: transparent;
+    }
+
+    .no-pointer-events {
+        pointer-events: none;
+    }
+}
+
 /**
  * Visually hide an element, but leave it available for screen readers
 
