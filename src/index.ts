@@ -14,7 +14,7 @@ import "./components/web-component.component";
 
 const { log } = console;
 
-// TODO: Add the abily to scroll while dragging a card
+// TODO: Add the abily to scroll while dragging a card in desktop and mobile (just like in Apple)
 // TODO: Listen to a media query to update the cards Y position + corresponding item
 
 /*
