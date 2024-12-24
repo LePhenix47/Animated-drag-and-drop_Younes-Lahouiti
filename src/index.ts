@@ -112,7 +112,11 @@ function addCardsToContainer(
   for (let i = 0; i < draggableElements.length; i++) {
     const element: HTMLElement = draggableElements[i];
 
-    const { x, y }: DOMRect = element.getBoundingClientRect();
+    const draggableDomRect = element.getBoundingClientRect();
+    const containerDomRect = container.getBoundingClientRect();
+
+    const x: number = draggableDomRect.x - containerDomRect.x;
+    const y: number = draggableDomRect.y - containerDomRect.y;
 
     const id: string = `draggable-${i + 1}`; // Generate a unique ID
 
@@ -379,14 +383,13 @@ container.addEventListener("custom:draggable-scroll-up", () => {
   );
 
   const isFirstItem: boolean = draggedItemIndex === 0;
-  if (isFirstItem) {
+  const itemHasNotBeenFound = draggedItemIndex < 0;
+  if (itemHasNotBeenFound || isFirstItem) {
     return;
   }
 
-  const candidates: DraggableItem[] = draggableItems.slice(0, draggedItemIndex);
-
   //* Check above elements
-  handleSwap(candidates);
+  handleSwap(draggedItemIndex, "up");
 });
 
 container.addEventListener("custom:draggable-scroll-down", () => {
@@ -401,16 +404,13 @@ container.addEventListener("custom:draggable-scroll-down", () => {
   );
 
   const isLastItem: boolean = draggedItemIndex > draggableItems.length - 1;
-  if (isLastItem) {
+  const itemHasNotBeenFound = draggedItemIndex < 0;
+  if (itemHasNotBeenFound || isLastItem) {
     return;
   }
 
-  const candidates: DraggableItem[] = draggableItems.slice(
-    draggedItemIndex + 1
-  );
-
   //* Check below elements
-  handleSwap(candidates);
+  handleSwap(draggedItemIndex, "down");
 });
 
 /*
@@ -432,109 +432,49 @@ function getDraggableItem(element: HTMLElement): DraggableItem | null {
 }
 
 /**
- * Handles the swapping of the dragged item with a candidate item.
+ * Calculates the center Y position of a draggable item.
  *
- * This function is called when the user drags an item and the
- * `custom:draggable-scroll-up` or `custom:draggable-scroll-down` event is
- * triggered. It takes an array of candidate items and an optional
- * `edgePoint` parameter. The default value for `edgePoint` is `"mid"`.
- *
- * @param {DraggableItem[]} candidates - The array of candidate items to
- *   check for swapping.
- * @param {"mid" | "top" | "bottom"} [edgePoint="mid"] - The edge point of
- *   the dragged item to check for swapping. The default value is `"mid"`.
+ * @param {DraggableItem} item - The draggable item whose center Y needs to be calculated.
+ * @returns {number} The center Y position of the item.
  */
-function handleSwap(candidates: DraggableItem[]): void {
-  const draggedElement = pointerInfos.pressedElement?.parentElement;
-  if (!draggedElement) {
-    return;
-  }
-
-  const draggedItem = getDraggableItem(draggedElement);
+function calculateCenterY(item: DraggableItem): number {
+  const height = getNumberFromCssStringValue(
+    getStyleProperty("--_height", item.element)
+  );
+  return item.y + height / 2;
+}
+/**
+ * Handles the swapping of the dragged item with an adjacent item.
+ *
+ * @param {number} draggedIndex - The index of the currently dragged item.
+ * @param {"up" | "down"} direction - The direction of the swap (up or down).
+ */
+function handleSwap(draggedIndex: number, direction: "up" | "down"): void {
+  const draggedItem = draggableItems[draggedIndex];
   if (!draggedItem) {
     return;
   }
 
-  const draggedItemHeight = getNumberFromCssStringValue(
-    getStyleProperty("--_height", draggedItem.element)
-  );
+  // Determine the target index based on the direction
+  const targetIndex: number =
+    direction === "up" ? draggedIndex - 1 : draggedIndex + 1;
 
-  // Calculate the dragged reference Y
-  const draggedReferenceY: number = draggedItem.y + draggedItemHeight / 2;
-
-  // Find the closest valid candidate
-  const closestItem: DraggableItem = getClosestItem(
-    draggedReferenceY,
-    candidates
-  );
-  if (!closestItem) {
+  const targetItem: DraggableItem = draggableItems[targetIndex];
+  if (!targetItem) {
     return;
   }
 
-  // Check the threshold for swap
-  const threshold: number = closestItem.element.offsetHeight / 2;
-  const candidateCenterY: number =
-    closestItem.y + closestItem.element.offsetHeight / 2;
-  const distance: number = Math.abs(draggedReferenceY - candidateCenterY);
+  // Calculate the center Y positions of dragged and target items
+  const draggedCenterY: number = calculateCenterY(draggedItem);
+  const targetCenterY: number = calculateCenterY(targetItem);
+  // Calculate the threshold for swapping
+  const threshold: number = targetItem.element.offsetHeight / 2;
+  const distance: number = Math.abs(draggedCenterY - targetCenterY);
 
-  log({
-    distance,
-    candidateCenterY,
-    threshold,
-    "closestItem.y": closestItem.y,
-  });
   if (distance <= threshold) {
-    swapItems(draggedItem, closestItem);
+    // Perform the swap
+    swapItems(draggedItem, targetItem);
   }
-}
-
-/**
- * Finds the closest item to the dragged item by comparing their Y positions.
- * Returns the closest item or null if no valid candidate is found.
- *
- * @param {number} draggedReferenceY - The Y position of the dragged item to compare with.
- * @param {DraggableItem[]} candidates - The array of candidate items to check for closeness.
- *
- * @returns {DraggableItem | null} The closest item to the dragged item, or null if no valid candidate is found.
- */
-function getClosestItem(
-  draggedReferenceY: number,
-  candidates: DraggableItem[]
-): DraggableItem | null {
-  let closestItem: DraggableItem | null = null;
-  let minDistance: number = Infinity;
-
-  for (const candidate of candidates) {
-    const candidateItemHeight: number = getNumberFromCssStringValue(
-      getStyleProperty("--_height", candidate.element)
-    );
-
-    if (Number.isNaN(candidateItemHeight)) {
-      console.error("Invalid candidateItemHeight:", candidateItemHeight);
-      continue;
-    }
-
-    const candidateCenterY = candidate.y + candidateItemHeight / 2;
-
-    if (Number.isNaN(candidateCenterY)) {
-      console.error("Invalid candidateCenterY:", candidateCenterY);
-      continue;
-    }
-
-    const distance = Math.abs(draggedReferenceY - candidateCenterY);
-
-    if (Number.isNaN(distance)) {
-      console.error("Invalid distance:", distance);
-      continue;
-    }
-
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestItem = candidate;
-    }
-  }
-
-  return closestItem;
 }
 
 /**
@@ -548,14 +488,10 @@ function swapItems(
   targetItem: DraggableItem
 ): void {
   const draggedElement: HTMLElement = draggedItem.element;
+  const targetElement: HTMLElement = targetItem.element;
 
   const draggedIndex: number = draggableItems.indexOf(draggedItem);
   const targetIndex: number = draggableItems.indexOf(targetItem);
-
-  [draggableItems[draggedIndex], draggableItems[targetIndex]] = [
-    draggableItems[targetIndex],
-    draggableItems[draggedIndex],
-  ];
 
   const gap: number = getNumberFromCssStringValue(
     getStyleProperty("gap", container)
@@ -564,12 +500,22 @@ function swapItems(
     getStyleProperty("--_height", draggedElement)
   );
 
-  for (let i = 0; i < draggableItems.length; i++) {
-    const item: DraggableItem = draggableItems[i];
-    const newY: number = i * (height + gap);
-    item.y = newY;
-    item.element.style.setProperty("--_y", `${newY}px`);
-  }
+  // ? Update Y positions for both items
+  // draggedItem.y = targetIndex * (height + gap);
+  targetItem.y = draggedIndex * (height + gap);
 
-  console.log("Swapped items:", { draggedItem, targetItem });
+  //?  Swap the items in the array
+  [draggableItems[draggedIndex], draggableItems[targetIndex]] = [
+    draggableItems[targetIndex],
+    draggableItems[draggedIndex],
+  ];
+
+  // ? Update the CSS variables for the targeted item
+  targetElement.style.setProperty("--_y", `${targetItem.y}px`);
+
+  log("Swapped items and updated positions:", {
+    draggedItem,
+    targetItem,
+    draggableItems,
+  });
 }
