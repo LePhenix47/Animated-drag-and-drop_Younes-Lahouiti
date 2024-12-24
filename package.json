@@ -34,6 +34,7 @@
     "@lephenix47/color-converter": "^1.2.0",
     "@lephenix47/cookies-utility": "^1.0.2",
     "@lephenix47/timers-utility": "^1.2.0",
-    "@lephenix47/webstorage-utility": "^1.2.0"
+    "@lephenix47/webstorage-utility": "^1.2.0",
+    "skeleton": "file:"
   }
 }
