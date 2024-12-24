@@ -2,6 +2,8 @@
 
 
 .footer {
+    grid-row: footer;
+
     &__paragraph {
         padding: 20px;
     }

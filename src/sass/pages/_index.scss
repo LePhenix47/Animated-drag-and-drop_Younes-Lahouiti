@@ -1,32 +1,40 @@
 @use "../utils/" as *;
 
+.index {
+    grid-row: main;
+}
+
 .container {
     width: 100%;
     flex: 1;
 
     display: flex;
     flex-direction: column;
-    gap: var(--_gap);
+    gap: var(--_container-gap);
 
     position: relative;
 
-    --_gap: 10px;
     --_cards-in-container: 10;
-    --_card-height: 150px;
+    --_container-gap: 10px;
+    --_draggable-card-height: 150px;
 
     @include mobile-only {
-        --_card-height: 75px;
+        --_draggable-card-height: 75px;
     }
 
-    min-height: calc((var(--_cards-in-container) - 1) * (var(--_card-height) + var(--_gap)) + var(--_card-height));
+    min-height: calc((var(--_cards-in-container) - 1) * (var(--_draggable-card-height) + var(--_container-gap)) + var(--_draggable-card-height));
+
+    counter-reset: draggable-list;
 }
 
 .draggable {
     display: flex;
 
+    counter-increment: draggable-list;
+
     touch-action: none;
 
-    --_height: var(--_card-height);
+    --_height: var(--_draggable-card-height);
     height: var(--_height);
     width: 100%;
 
@@ -41,20 +49,41 @@
 
     background-color: grey;
 
-    transition: top 250ms ease-in-out, filter 250ms ease-in-out;
+    transition: top var(--_draggable-transition-duration) ease-in-out, filter var(--_draggable-transition-duration) ease-in-out;
+
+    --_draggable-transition-duration: 250ms;
+    --_draggable-handle-width: 100px;
+
+    --_draggable-item-count-x-offset: 15px;
+
 
     z-index: 0;
 
+    &::after {
+        content: counter(draggable-list, decimal-leading-zero);
+        position: absolute;
+        top: 50%;
+        left: calc(var(--_draggable-handle-width) + var(--_draggable-item-count-x-offset));
+
+        translate: 0 -50%;
+
+        font-size: clamp(30px, 5vw, 64px);
+    }
+
     //   Doesn't work
     &:not(.dragging) {
-        animation: z-index-hack 250ms ease-in-out backwards;
+        animation: z-index-hack var(--_draggable-transition-duration) ease-in-out backwards;
     }
 
     &.dragging {
         // background-color: lightgrey;
         filter: brightness(150%);
         z-index: 1;
-        transition: filter 250ms ease-in-out;
+
+        font-weight: bold;
+
+
+        transition: filter var(--_draggable-transition-duration) ease-in-out;
 
         cursor: grabbing;
     }
@@ -71,7 +100,7 @@
         justify-content: center;
         align-items: center;
 
-        aspect-ratio: 1/1.5;
+        width: var(--_draggable-handle-width);
 
         &:hover {
             cursor: grab;
