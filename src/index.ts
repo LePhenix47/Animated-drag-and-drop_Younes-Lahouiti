@@ -21,12 +21,22 @@ Adding more cards to the container
 */
 
 type DraggableItem = {
-  id: string; // Unique identifier for each draggable item
-  x: number; // Current X position
-  y: number; // Current Y position
-  element: HTMLElement; // Reference to the DOM element (optional, but could be useful)
+  id: string;
+  x: number;
+  y: number;
+  element: HTMLElement;
 };
 
+/**
+ * *Global state variable*
+ *
+ * An array to store the state of all draggable items in the container.
+ * The array contains objects with the following properties:
+ * - `id`: Unique identifier for each draggable item
+ * - `x`: Current draggable X position
+ * - `y`: Current draggable Y position
+ * - `element`: Reference to the DOM element
+ */
 let draggableItems: DraggableItem[] = [];
 
 const container = document.querySelector<HTMLElement>(`[data-js=container]`)!;
@@ -83,8 +93,6 @@ function addCardsToContainer(
         ${svgIcon}
       </span>
     </button>
-
-    ${draggablePosition}
   </li>
   `;
   };
@@ -126,7 +134,7 @@ addCardsToContainer(container, CARDS_IN_CONTAINER);
 
 /*
 
-DRAGGING LOGIC
+* DRAGGING LOGIC
 
 */
 
@@ -336,14 +344,16 @@ function snapReleasedCardIntoPlace(): void {
   const { parentElement: draggedCard } = pointerInfos.pressedElement!;
   draggedCard!.classList.remove("dragging");
 
-  const draggedItem = getDraggableItem(draggedCard!)!;
+  const draggedItem: DraggableItem = getDraggableItem(draggedCard!)!;
 
   // TODO create a function to update a cards Y
-  const newIndex = draggableItems.indexOf(draggedItem);
-  const height = getNumberFromCssStringValue(
+  const newIndex: number = draggableItems.indexOf(draggedItem);
+  const height: number = getNumberFromCssStringValue(
     getStyleProperty("--_height", draggedCard!)
   );
-  const gap = getNumberFromCssStringValue(getStyleProperty("gap", container));
+  const gap: number = getNumberFromCssStringValue(
+    getStyleProperty("gap", container)
+  );
 
   draggedItem.y = newIndex * (height + gap);
   draggedCard!.style.setProperty("--_y", `${draggedItem.y}px`);
@@ -352,8 +362,11 @@ function snapReleasedCardIntoPlace(): void {
 }
 
 /*
-CUSTOM EVENT LISTENERS
-*/
+ * CUSTOM EVENT LISTENERS
+ */
+/*
+ * CUSTOM EVENT LISTENERS
+ */
 
 container.addEventListener("custom:draggable-scroll-up", () => {
   const draggedElement = pointerInfos.pressedElement?.parentElement;
@@ -370,10 +383,10 @@ container.addEventListener("custom:draggable-scroll-up", () => {
     return;
   }
 
-  const candidates: DraggableItem[] = draggableItems
-    .slice(0, draggedItemIndex)
-    .reverse(); // Above elements
-  handleSwap(candidates); // Check from the bottom of dragged card
+  const candidates: DraggableItem[] = draggableItems.slice(0, draggedItemIndex);
+
+  //* Check above elements
+  handleSwap(candidates);
 });
 
 container.addEventListener("custom:draggable-scroll-down", () => {
@@ -394,13 +407,15 @@ container.addEventListener("custom:draggable-scroll-down", () => {
 
   const candidates: DraggableItem[] = draggableItems.slice(
     draggedItemIndex + 1
-  ); // Below elements
-  handleSwap(candidates); // Check from the top of dragged card
+  );
+
+  //* Check below elements
+  handleSwap(candidates);
 });
 
 /*
-SWAPPING LOGIC
-*/
+ * SWAPPING LOGIC
+ */
 // Helper to get the draggable item by element
 
 /**
@@ -416,8 +431,6 @@ function getDraggableItem(element: HTMLElement): DraggableItem | null {
   );
 }
 
-// Custom swapping logic
-
 /**
  * Handles the swapping of the dragged item with a candidate item.
  *
@@ -431,10 +444,7 @@ function getDraggableItem(element: HTMLElement): DraggableItem | null {
  * @param {"mid" | "top" | "bottom"} [edgePoint="mid"] - The edge point of
  *   the dragged item to check for swapping. The default value is `"mid"`.
  */
-function handleSwap(
-  candidates: DraggableItem[],
-  edgePoint: "mid" | "top" | "bottom" = "mid"
-): void {
+function handleSwap(candidates: DraggableItem[]): void {
   const draggedElement = pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
     return;
@@ -450,18 +460,7 @@ function handleSwap(
   );
 
   // Calculate the dragged reference Y
-  let draggedReferenceY: number = NaN;
-  switch (edgePoint) {
-    case "top":
-      draggedReferenceY = draggedItem.y;
-      break;
-    case "bottom":
-      draggedReferenceY = draggedItem.y + draggedItemHeight;
-      break;
-    default:
-      draggedReferenceY = draggedItem.y + draggedItemHeight / 2;
-      break;
-  }
+  const draggedReferenceY: number = draggedItem.y + draggedItemHeight / 2;
 
   // Find the closest valid candidate
   const closestItem: DraggableItem = getClosestItem(
