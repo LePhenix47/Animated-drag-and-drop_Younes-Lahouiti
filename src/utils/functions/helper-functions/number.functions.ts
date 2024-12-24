@@ -1,5 +1,3 @@
-import { abs, floor, random } from "./math.functions";
-
 /**
  * Generates a random number within a specified range.
  * @param {number} min - The minimum value of the range.
@@ -29,6 +27,8 @@ export function getRandomNumber(
   const mustIncludeOnlyMin: boolean = includeMin && !includeMax;
 
   const mustIncludeOnlyMax: boolean = !includeMin && includeMax;
+
+  const { floor, random } = Math;
 
   if (mustIncludeBoth) {
     return floor(random() * (max - min + 1)) + min;
@@ -71,10 +71,12 @@ export function nthRoot(value: number, root: number = 2): number {
     );
   }
 
+  const { abs } = Math;
+
   //To avoid JS returning us a NaN even with odd roots of negative values
   //We set the value to be positive by taking their absolute value: |x|
   //Then we use the formula ⁿ√(x) = x^(1/n)
-  let calculatedRoot: number = abs(value) ** (1 / root);
+  const calculatedRoot: number = abs(value) ** (1 / root);
 
   //And we now return the nth root of a positive or negative value
   return value > 0 ? calculatedRoot : -1 * calculatedRoot;
@@ -111,19 +113,20 @@ export function logarithm(value: number, base: number = Math.E): number {
 }
 
 /**
- * Converts a hexadecimal string to its decimal equivalent.
- * @param {string} hexadecimal - The hexadecimal string to convert.
- * @returns {number} The decimal representation of the hexadecimal value.
+ * Clamps a number between a minimum and a maximum value.
+ *
+ * This function takes a `value` and ensures it falls within the range defined
+ * by `min` and `max`. If `value` is less than `min`, the function returns `min`.
+ * If `value` is greater than `max`, the function returns `max`. Otherwise, it
+ * returns `value`.
+ *
+ * @param {number} min - The minimum allowable value.
+ * @param {number} value - The value to be clamped.
+ * @param {number} max - The maximum allowable value.
+ * @returns {number} The clamped value.
  */
-export function hexadecimalToDecimal(hexadecimal: string): number {
-  return Number(`0x${hexadecimal}`);
-}
-
-/**
- * Converts a decimal value to its hexadecimal equivalent.
- * @param {number} decimal - The decimal value to convert.
- * @returns {string} The hexadecimal representation of the decimal value.
- */
-export function decimalToHexadecimal(decimal: number): string {
-  return decimal.toString(16);
+export function clamp(min: number, value: number, max: number): number {
+  const checkedMinValue: number = Math.max(value, min);
+  const checkedMaxValue: number = Math.min(checkedMinValue, max);
+  return checkedMaxValue;
 }

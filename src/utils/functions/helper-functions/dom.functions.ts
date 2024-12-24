@@ -1,4 +1,3 @@
-
 /**
  * Simpler version of `document.getElementsByClassName()`
  * Selects all elements with a given class name inside a given container or the whole document.
@@ -209,160 +208,28 @@ export function setStyleProperty(
 }
 
 /**
- * Appends a child element to a parent element
+ * Retrieves the value of a CSS property from an element's computed style.
  *
- * @param {any} childElement - The child element to append to the parent element
- * @param {any} parentElement - The parent element to which the child element should be appended
- * @returns {HTMLElement} - The appended child element
- */
-export function appendChildToParent(
-  childElement: HTMLElement,
-  parentElement: HTMLElement
-): HTMLElement {
-  return parentElement.appendChild(childElement);
-}
-
-/**
- * Replaces an old child element with a new child element in a given parent element
- * @param {any} parentElement - The parent element where the child will be replaced
- * @param {any} newChild - The new child element to be inserted
- * @param {any} oldChild - The old child element to be removed
- * @returns {void} - The replaced child element
- */
-export function replaceChildInParent(
-  parentElement: HTMLElement,
-  newChild: HTMLElement,
-  oldChild: HTMLElement
-): void {
-  oldChild.remove();
-  appendChildToParent(newChild, parentElement);
-}
-
-/**
- * Adds or modifies an attribute to the given element
+ * @param {string} property - The name of the CSS property to retrieve.
+ * @param {HTMLElement | Element} element - The element to get the computed style from.
  *
- * @param {HTMLElement} element The element to add the attribute to
- * @param {string} property The name of the attribute to add
- * @param {any} value The value to set the attribute to
+ * @returns {string} The value of the specified CSS property.
  */
-export function modifyAttribute(
+export function getStyleProperty(
   property: string,
-  value: any,
-  element: HTMLElement
-): void {
-  element.setAttribute(property, value.toString());
-}
-
-/**
- * Retrieves the value of the specified attribute from the given element
- *
- * @param {string} attributeName - The name of the attribute to retrieve
- * @param {HTMLElement} element - The element from which to retrieve the attribute
- *
- * @returns {string} The value of the attribute
- */
-export function getAttribute(
-  attributeName: string,
-  element: HTMLElement
+  element: HTMLElement | Element
 ): string {
-  return element.getAttribute(attributeName);
+  const computedStyle: CSSStyleDeclaration = getComputedStyle(element);
+  return computedStyle.getPropertyValue(property);
 }
 
 /**
- * Removes an attribute from an element and sets a new attribute in its place.
+ * Converts a CSS string value to a number by removing any units (%, px, em, rem) and parsing the result.
  *
- * @param {HTMLElement} element - The element from which to remove the attribute.
- * @param {string} oldAttribute - The name of the attribute to remove.
- * @param {string} newAttribute - The name of the new attribute to set.
- */
-export function replaceAttributeBy(
-  element: HTMLElement,
-  oldAttribute: string,
-  newAttribute: string
-) {
-  element.removeAttribute(oldAttribute);
-  element.setAttribute(newAttribute, "");
-}
-
-/**
- * Enables the specified element by removing the "disabled" attribute and setting the "enabled" attribute.
+ * @param {string} cssStringValue - The string value to convert to a number.
  *
- * @param {HTMLElement} element - The element to enable.
+ * @returns {number} The numerical value of the input string.
  */
-export function enableElement(element: HTMLElement): void {
-  replaceAttributeBy(element, "disabled", "enabled");
-}
-
-/**
- * Disables the specified element by removing the "enabled" attribute and setting the "disabled" attribute.
- *
- * @param {HTMLElement} element - The element to disable.
- */
-export function disableElement(element: HTMLElement): void {
-  replaceAttributeBy(element, "enabled", "disabled");
-}
-
-/**
- * Adds a class name to a given element's class list
- * @param {HTMLElement} element - The element to add the class to
- * @param {string} className - The class name to add
- *
- * @returns {void}
- */
-export function addClass(element: HTMLElement, className: string): void {
-  element.classList.add(className);
-}
-
-/**
- * Removes a class name from a given element's class list
- * @param {HTMLElement} element - The element to remove the class from
- * @param {string} className - The class name to remove
- *
- * @returns {void}
- */
-export function removeClass(element: HTMLElement, className: string): void {
-  element.classList.remove(className);
-}
-
-/**
- * Replaces an old class name with a new class name in a given element's class list
- * @param {HTMLElement} element - The element to replace the class name in
- * @param {string} oldClassName - The old class name to replace
- * @param {string} newClassName - The new class name to replace with
- *
- * @returns {void}
- */
-export function replaceClass(
-  element: HTMLElement,
-  oldClassName: string,
-  newClassName: string
-): void {
-  element.classList.replace(oldClassName, newClassName);
-}
-
-export function getSelectOptions(
-  selectElement: HTMLSelectElement,
-  valuesOnly: boolean = false
-): any {
-  const isNotSelectElement: boolean = selectElement.tagName !== "SELECT";
-  if (isNotSelectElement) {
-    throw new Error(
-      "Error: Element passed in argument is not a <select multiple>"
-    );
-  }
-
-  let selectedOptionsArray: HTMLOptionElement[] = Array.from(
-    selectElement.selectedOptions
-  );
-
-  if (valuesOnly) {
-    //@ts-ignore
-    selectedOptionsArray = selectedOptionsArray.map(
-      (option: HTMLOptionElement) => {
-        return option.value;
-      }
-    );
-  }
-
-  return selectedOptionsArray;
+export function getNumberFromCssStringValue(cssStringValue: string): number {
+  return Number(cssStringValue.replaceAll(/%|px|em|rem/g, ""));
 }
