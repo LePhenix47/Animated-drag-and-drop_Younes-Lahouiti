@@ -14,7 +14,8 @@ import "./components/web-component.component";
 
 const { log } = console;
 
-// TODO: Split the code into files
+// TODO: Add the abily to scroll while dragging a card
+// TODO: Listen to a media query to update the cards Y position + corresponding item
 
 /*
 Adding more cards to the container
@@ -350,7 +351,6 @@ function snapReleasedCardIntoPlace(): void {
 
   const draggedItem: DraggableItem = getDraggableItem(draggedCard!)!;
 
-  // TODO create a function to update a cards Y
   const newIndex: number = draggableItems.indexOf(draggedItem);
   const height: number = getNumberFromCssStringValue(
     getStyleProperty("--_height", draggedCard!)
@@ -501,7 +501,6 @@ function swapItems(
   );
 
   // ? Update Y positions for both items
-  // draggedItem.y = targetIndex * (height + gap);
   targetItem.y = draggedIndex * (height + gap);
 
   //?  Swap the items in the array
@@ -518,4 +517,20 @@ function swapItems(
     targetItem,
     draggableItems,
   });
+}
+
+function handleSize(draggedElement: HTMLElement): void {
+  const gap: number = getNumberFromCssStringValue(
+    getStyleProperty("gap", container)
+  );
+  const height: number = getNumberFromCssStringValue(
+    getStyleProperty("--_height", draggedElement)
+  );
+
+  for (let i = 0; i < draggableItems.length; i++) {
+    const item: DraggableItem = draggableItems[i];
+    const newY: number = i * (height + gap);
+    item.y = newY;
+    item.element.style.setProperty("--_y", `${newY}px`);
+  }
 }
