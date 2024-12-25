@@ -32,7 +32,6 @@
 
     counter-increment: draggable-list;
 
-    touch-action: none;
 
     --_height: var(--_draggable-card-height);
     height: var(--_height);
@@ -86,6 +85,7 @@
     }
 
     &__handle {
+        touch-action: none;
         background-color: var(--handle-bg);
         color: var(--handle-color);
 
