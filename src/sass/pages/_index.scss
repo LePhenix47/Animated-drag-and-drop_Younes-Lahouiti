@@ -70,16 +70,9 @@
         font-size: clamp(30px, 5vw, 64px);
     }
 
-    //   Doesn't work
-    &:not(.dragging) {
-        animation: z-index-hack var(--_draggable-transition-duration) ease-in-out backwards;
-    }
-
     &.dragging {
         // background-color: lightgrey;
         filter: brightness(150%);
-        z-index: 1;
-
         font-weight: bold;
 
 
@@ -88,7 +81,7 @@
         cursor: grabbing;
     }
 
-    &__sampe {
+    &__sample {
         display: none;
     }
 
@@ -120,12 +113,6 @@
     }
 }
 
-@keyframes z-index-hack {
-    99.99% {
-        z-index: 1;
-    }
-
-    100% {
-        z-index: 0;
-    }
+.keep-high-z-index {
+    z-index: 1;
 }

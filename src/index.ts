@@ -209,6 +209,7 @@ function handlePointerDown(event: PointerEvent): void {
   }
 
   element.parentElement!.classList.add("dragging"); // Need to toggle the class ONLY on the draggable element
+  element.parentElement!.classList.add("keep-high-z-index");
 
   const rect = element!.getBoundingClientRect();
   const containerDomRect = container.getBoundingClientRect();
@@ -346,6 +347,7 @@ function handlePointerLeave(event: PointerEvent): void {
  * the array of draggable items, and logs the updated array of draggable items to the console.
  */
 function snapReleasedCardIntoPlace(): void {
+  log("snapReleasedCardIntoPlace");
   const { parentElement: draggedCard } = pointerInfos.pressedElement!;
   draggedCard!.classList.remove("dragging");
 
@@ -361,6 +363,17 @@ function snapReleasedCardIntoPlace(): void {
 
   draggedItem.y = newIndex * (height + gap);
   draggedCard!.style.setProperty("--_y", `${draggedItem.y}px`);
+
+  draggedCard.addEventListener(
+    "transitionend",
+    () => {
+      log("transitionend");
+      draggedCard!.classList.remove("keep-high-z-index");
+    },
+    { once: true }
+  );
+
+  draggedCard;
 
   console.table(draggableItems);
 }
