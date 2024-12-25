@@ -3,8 +3,6 @@ type PointerInfos = {
   pressedElement: HTMLElement | null;
   initialXAnchor: number;
   initialYAnchor: number;
-  previousX: number;
-  previousY: number;
 };
 
 export const pointerInfos: PointerInfos = {
@@ -12,6 +10,4 @@ export const pointerInfos: PointerInfos = {
   pressedElement: null,
   initialXAnchor: 0,
   initialYAnchor: 0,
-  previousX: NaN,
-  previousY: NaN,
 };

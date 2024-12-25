@@ -208,14 +208,21 @@ function handlePointerDown(event: PointerEvent): void {
     return;
   }
 
-  element.parentElement!.classList.add("dragging"); // Need to toggle the class ONLY on the draggable element
-  element.parentElement!.classList.add("keep-high-z-index");
+  const { parentElement } = element;
 
-  const rect = element!.getBoundingClientRect();
-  const containerDomRect = container.getBoundingClientRect();
+  const dragginCardClassesToAdd = ["dragging", "keep-high-z-index"] as const;
 
-  const computedXAnchor = event.pageX + containerDomRect.x - rect.x;
-  const computedYAnchor = event.pageY + containerDomRect.y - rect.y;
+  for (const draggingClass of dragginCardClassesToAdd) {
+    parentElement.classList.add(draggingClass);
+  }
+
+  const draggableDomRect: DOMRect = parentElement!.getBoundingClientRect();
+  const containerDomRect: DOMRect = container.getBoundingClientRect();
+
+  const computedXAnchor: number =
+    event.pageX + containerDomRect.x - draggableDomRect.x;
+  const computedYAnchor: number =
+    event.pageY + containerDomRect.y - draggableDomRect.y;
 
   pointerInfos.initialXAnchor = clamp(
     0,
@@ -252,16 +259,8 @@ function handlePointerMove(event: PointerEvent): void {
     return;
   }
 
-  if (!pointerInfos.previousX) {
-    pointerInfos.previousX = event.pageX;
-  }
-
-  if (!pointerInfos.previousY) {
-    pointerInfos.previousY = event.pageY;
-  }
-
-  const hasScrolledDown: boolean = event.pageY > pointerInfos.previousY;
-  const hasScrolledUp: boolean = event.pageY < pointerInfos.previousY;
+  const hasScrolledDown: boolean = event.movementY > 0;
+  const hasScrolledUp: boolean = event.movementY < 0;
 
   if (hasScrolledDown) {
     dispatchCustomEvent("custom:draggable-scroll-down", container);
@@ -271,22 +270,19 @@ function handlePointerMove(event: PointerEvent): void {
     console.log("No Y direction change while dragging");
   }
 
-  pointerInfos.previousX = event.pageX;
-  pointerInfos.previousY = event.pageY;
-
   //  log("Moving", pointerInfos.isPressing, isNotPressingSquare);
 
   const containerDomRect = container.getBoundingClientRect();
 
   const arrayOfAxis = [
-    //    {
-    //      axisName: "x",
-    //      computedOffset: clamp(
-    //        0,
-    //        event.pageX - pointerInfos.initialXAnchor,
-    //        containerDomRect.width
-    //      ),
-    //    },
+    // {
+    //   axisName: "x",
+    //   computedOffset: clamp(
+    //     0,
+    //     event.pageX - pointerInfos.initialXAnchor,
+    //     containerDomRect.width
+    //   ),
+    // },
     {
       axisName: "y",
       computedOffset: clamp(
@@ -303,7 +299,7 @@ function handlePointerMove(event: PointerEvent): void {
     const { parentElement } = pressedElement!;
     parentElement!.style.setProperty(`--_${axisName}`, `${computedOffset}px`);
 
-    const draggedItem = getDraggableItem(parentElement!);
+    const draggedItem: DraggableItem = getDraggableItem(parentElement!);
     if (draggedItem) {
       draggedItem.y = computedOffset;
     }
@@ -329,7 +325,7 @@ function handlePointerLeave(event: PointerEvent): void {
     return;
   }
 
-  const hadPreviouslyClickedOnDraggable =
+  const hadPreviouslyClickedOnDraggable: boolean =
     pointerInfos.pressedElement.parentElement?.hasAttribute("draggable");
 
   if (hadPreviouslyClickedOnDraggable) {
@@ -367,7 +363,6 @@ function snapReleasedCardIntoPlace(): void {
   draggedCard.addEventListener(
     "transitionend",
     () => {
-      log("transitionend");
       draggedCard!.classList.remove("keep-high-z-index");
     },
     { once: true }
