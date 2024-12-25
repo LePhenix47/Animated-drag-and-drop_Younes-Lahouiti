@@ -16,7 +16,7 @@
 
     --_cards-in-container: 10;
     --_container-gap: 10px;
-    --_draggable-card-height: 150px;
+    --_draggable-card-height: 115px;
 
     @include mobile-only {
         --_draggable-card-height: 75px;
@@ -43,8 +43,8 @@
     --_max-y: calc(100% - var(--_height));
 
     position: absolute;
-    top: clamp(0px, var(--_y), var(--_max-y));
-    left: 0;
+    top: clamp(0px, var(--_y, 0px), var(--_max-y, 0px));
+    left: 0; // ? Never changes it's X position
 
     background-color: grey;
 
