@@ -7,7 +7,7 @@ import { clamp } from "@utils/functions/helper-functions/number.functions";
 
 import {
   dispatchCustomEvent,
-  getRelativeToViewport,
+  getYOffsetRelativeToViewport,
 } from "@utils/functions/helper-functions/event.functions";
 
 import { pointerInfos } from "@utils/variables/pointer-infos.variables";
@@ -256,9 +256,8 @@ function handlePointerMove(event: PointerEvent): void {
   const { pressedElement } = pointerInfos;
 
   const isNotHoldingDraggable =
-    !pointerInfos.isPressing ||
     !pressedElement?.classList?.contains?.("draggable__handle");
-  if (isNotHoldingDraggable) {
+  if (!pointerInfos.isPressing || isNotHoldingDraggable) {
     return;
   }
 
@@ -273,40 +272,15 @@ function handlePointerMove(event: PointerEvent): void {
     console.log("No Y direction change while dragging");
   }
 
-  //  log("Moving", pointerInfos.isPressing, isNotPressingSquare);
-
-  const containerDomRect = container.getBoundingClientRect();
-
-  const arrayOfAxis = [
-    // {
-    //   axisName: "x",
-    //   computedOffset: clamp(
-    //     0,
-    //     event.pageX - pointerInfos.initialXAnchor,
-    //     containerDomRect.width
-    //   ),
-    // },
-    {
-      axisName: "y",
-      computedOffset: clamp(
-        0,
-        event.pageY - pointerInfos.initialYAnchor,
-        containerDomRect.height
-      ),
+  const { pageX, pageY, clientX, clientY } = event;
+  dispatchCustomEvent("custom:draggable-move", container, {
+    detail: {
+      pageX,
+      pageY,
+      clientX,
+      clientY,
     },
-  ];
-
-  for (const axis of arrayOfAxis) {
-    const { axisName, computedOffset } = axis;
-
-    const { parentElement } = pressedElement!;
-    parentElement!.style.setProperty(`--_${axisName}`, `${computedOffset}px`);
-
-    const draggedItem: DraggableItem = getDraggableItem(parentElement!);
-    if (draggedItem) {
-      draggedItem.y = computedOffset;
-    }
-  }
+  });
 }
 
 /**
@@ -379,9 +353,44 @@ function snapReleasedCardIntoPlace(): void {
 /*
  * CUSTOM EVENT LISTENERS
  */
-/*
- * CUSTOM EVENT LISTENERS
- */
+container.addEventListener("custom:draggable-move", (event: CustomEvent) => {
+  log("custom:draggable-move", event.detail);
+
+  const containerDomRect: DOMRect = container.getBoundingClientRect();
+
+  const arrayOfAxis = [
+    // {
+    //   axisName: "x",
+    //   computedOffset: clamp(
+    //     0,
+    //     event.detail.pageX - pointerInfos.initialXAnchor,
+    //     containerDomRect.width
+    //   ),
+    // },
+    {
+      axisName: "y",
+      computedOffset: clamp(
+        0,
+        event.detail.pageY - pointerInfos.initialYAnchor,
+        containerDomRect.height
+      ),
+    },
+  ];
+
+  for (const axis of arrayOfAxis) {
+    const { axisName, computedOffset } = axis;
+
+    const { parentElement } = pointerInfos.pressedElement!;
+    parentElement!.style.setProperty(`--_${axisName}`, `${computedOffset}px`);
+
+    const draggedItem: DraggableItem = getDraggableItem(parentElement!);
+    if (draggedItem) {
+      draggedItem.y = computedOffset;
+    }
+  }
+
+  // TODO: Add logic to scroll up and down the body if dragging a card at 15% of the viewport (up) or 85% of the viewport (down) here (mustn't forget to add multiple thresholds to control scrolling speed)
+});
 
 container.addEventListener("custom:draggable-scroll-up", () => {
   const draggedElement = pointerInfos.pressedElement?.parentElement;
