@@ -1,33 +1,36 @@
 /**
- * Dispatches a custom event to the given content container.
+ * Dispatches a custom event to the given content container element.
  *
- * @param {string} eventName - The name of the custom event to be dispatched.
- * @param {HTMLElement} contentContainer - The HTML element that will receive the custom event.
+ * @param {string} eventName - The name of the custom event.
+ * @param {HTMLElement} contentContainer - The element to which the event will be dispatched.
+ * @param {CustomEventInit<unknown>} [options] - Options for the custom event.
+ * @returns {void}
  */
 export function dispatchCustomEvent(
   eventName: string,
-  contentContainer: HTMLElement
+  contentContainer: HTMLElement,
+  options?: CustomEventInit<unknown>
 ): void {
-  const customEvent = new CustomEvent(eventName);
+  const customEvent = new CustomEvent(eventName, options);
   contentContainer.dispatchEvent(customEvent);
 }
 
 /**
- * Calculates the relative position of the mouse pointer to the viewport as a percentage,
+ * Calculates the relative position of the given y coordinate to the viewport as a percentage,
  * 0% being the top of the viewport and 100% being the bottom.
  *
- * @param {PointerEvent} event - The pointer event.
+ * @param {number} clientY - The visible part of the browser window to calculate the relative position of.
  * @returns {number} The relative position as a percentage.
  */
-export function getRelativeToViewport(event: PointerEvent): number {
+export function getYOffsetRelativeToViewport(clientY: number): number {
   const viewportHeight: number =
     window.visualViewport?.height || window.innerHeight;
+
   const viewportBrowserNavBarOffset: number =
     window.visualViewport?.offsetTop || 0;
 
-  const relativeToViewport: number = Math.round(
-    (100 * (event.clientY - viewportBrowserNavBarOffset)) / viewportHeight
-  );
+  const relativeToViewport: number =
+    (clientY - viewportBrowserNavBarOffset) / viewportHeight;
 
-  return relativeToViewport;
+  return Math.round(100 * relativeToViewport);
 }
