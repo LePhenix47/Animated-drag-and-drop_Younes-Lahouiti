@@ -5,7 +5,10 @@ import {
 
 import { clamp } from "@utils/functions/helper-functions/number.functions";
 
-import { dispatchCustomEvent } from "@utils/functions/helper-functions/event.functions";
+import {
+  dispatchCustomEvent,
+  getRelativeToViewport,
+} from "@utils/functions/helper-functions/event.functions";
 
 import { pointerInfos } from "@utils/variables/pointer-infos.variables";
 
