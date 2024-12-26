@@ -14,6 +14,7 @@ import { pointerInfos } from "@utils/variables/pointer-infos.variables";
 
 //Web components
 import "./components/web-component.component";
+import { DraggableMoveEvent } from "@utils/types/custom-events.type";
 
 const { log } = console;
 
@@ -183,6 +184,8 @@ function handlePointerCancel(event: PointerEvent): void {
   log("Pointer cancel", event);
 }
 
+let rAFId: number | null = null;
+
 /**
  * Handles the pointerdown event.
  *
@@ -197,6 +200,13 @@ function handlePointerCancel(event: PointerEvent): void {
  */
 function handlePointerDown(event: PointerEvent): void {
   event.preventDefault();
+
+  const { pageX, pageY, clientX, clientY } = event;
+
+  pointerInfos.pageX = pageX;
+  pointerInfos.pageY = pageY;
+  pointerInfos.clientX = clientX;
+  pointerInfos.clientY = clientY;
 
   pointerInfos.isPressing =
     userIsHoldingLeftClick(event) || userIsTouchingScreen(event);
@@ -240,12 +250,16 @@ function handlePointerDown(event: PointerEvent): void {
   );
 
   log("Pointer info down ↓:", pointerInfos);
+
+  if (!rAFId) {
+    rAFId = requestAnimationFrame(handleScrollAndPointerMove);
+  }
 }
 
 /**
  * Handles the pointermove event.
  *
- * When the user moves the pointer, this function is called and it will either dispatch a "custom:draggable-scroll-down" or "custom:draggable-scroll-up" event if the user has scrolled down or up respectively.
+ * When the user moves the pointer, this function is called and it will either dispatch a "custom:draggable-switch-down" or "custom:draggable-switch-up" event if the user has scrolled down or up respectively.
  *
  * If the user has not scrolled up or down, it will not dispatch any event.
  *
@@ -265,22 +279,96 @@ function handlePointerMove(event: PointerEvent): void {
   const hasScrolledUp: boolean = event.movementY < 0;
 
   if (hasScrolledDown) {
-    dispatchCustomEvent("custom:draggable-scroll-down", container);
+    dispatchCustomEvent("custom:draggable-switch-down", container);
   } else if (hasScrolledUp) {
-    dispatchCustomEvent("custom:draggable-scroll-up", container);
+    dispatchCustomEvent("custom:draggable-switch-up", container);
   } else {
     console.log("No Y direction change while dragging");
   }
 
   const { pageX, pageY, clientX, clientY } = event;
-  dispatchCustomEvent("custom:draggable-move", container, {
-    detail: {
-      pageX,
-      pageY,
-      clientX,
-      clientY,
-    },
-  });
+
+  pointerInfos.pageX = pageX;
+  pointerInfos.pageY = pageY;
+  pointerInfos.clientX = clientX;
+  pointerInfos.clientY = clientY;
+
+  dispatchCustomEvent("custom:draggable-move", container);
+
+  // checkScrollingWhileDragging(clientY);
+}
+
+/**
+ * rAF loop function to handle scrolling and emitting pointermove events.
+ *
+ * This function is continuously called during dragging to check scroll thresholds
+ * and emit pointermove events to keep the draggable element following the cursor.
+ */
+function handleScrollAndPointerMove() {
+  checkScrollingWhileDragging();
+  // Emit pointermove event to update draggable position and other interactions
+  dispatchCustomEvent("custom:draggable-move", container);
+  // Continue the rAF loop
+  rAFId = requestAnimationFrame(handleScrollAndPointerMove);
+}
+
+/**
+ * Checks if the user is scrolling while dragging a card and, if so, scrolls the window accordingly.
+ *
+ * @param {number} clientY - The clientY coordinate of the pointer.
+ */
+function checkScrollingWhileDragging() {
+  const { clientY } = pointerInfos;
+
+  // Array of objects with thresholds and corresponding speeds
+  const SCROLL_SETTINGS = [
+    { threshold: 0.55, speed: 5 },
+    { threshold: 0.6, speed: 10 },
+    { threshold: 0.65, speed: 15 },
+    { threshold: 0.7, speed: 20 },
+    { threshold: 0.8, speed: 40 },
+    { threshold: 0.9, speed: 100 },
+  ] as const;
+
+  const yOffsetRelativeToViewport: number =
+    getYOffsetRelativeToViewport(clientY);
+
+  // ? Value between [-100, 100], from the center
+  const yOffsetFromScreenCenter: number = (yOffsetRelativeToViewport - 50) * 2;
+  const isUnderMinThreshold =
+    Math.abs(yOffsetFromScreenCenter) < SCROLL_SETTINGS[0].threshold * 100;
+  if (isUnderMinThreshold) {
+    return;
+  }
+
+  let scrollDirection: 1 | -1 | 0 = 0;
+  if (yOffsetFromScreenCenter > 0) {
+    scrollDirection = 1;
+  } else if (yOffsetFromScreenCenter < 0) {
+    scrollDirection = -1;
+  }
+
+  // Compute the scroll speed based on thresholds
+  let scrollSpeed = 0;
+
+  for (let i = 0; i < SCROLL_SETTINGS.length; i++) {
+    const { threshold: currentThreshold, speed } = SCROLL_SETTINGS[i];
+
+    const nextThreshold = SCROLL_SETTINGS[i + 1]?.threshold ?? Infinity;
+
+    const isWithinThresholdRange: boolean =
+      Math.abs(yOffsetFromScreenCenter) >= currentThreshold * 100 &&
+      Math.abs(yOffsetFromScreenCenter) < nextThreshold * 100;
+    if (isWithinThresholdRange) {
+      scrollSpeed = speed;
+      break;
+    }
+  }
+
+  // Apply scrolling if a valid speed is set
+  if (scrollSpeed > 0) {
+    window.scrollBy(0, scrollSpeed * scrollDirection);
+  }
 }
 
 /**
@@ -310,6 +398,9 @@ function handlePointerLeave(event: PointerEvent): void {
   }
 
   pointerInfos.pressedElement = null;
+
+  cancelAnimationFrame(rAFId);
+  rAFId = null;
 }
 
 /**
@@ -353,17 +444,19 @@ function snapReleasedCardIntoPlace(): void {
 /*
  * CUSTOM EVENT LISTENERS
  */
-container.addEventListener("custom:draggable-move", (event: CustomEvent) => {
-  log("custom:draggable-move", event.detail);
 
+container.addEventListener("custom:draggable-move", () => {
+  // * Changing the draggable Y positon to follow the cursor
   const containerDomRect: DOMRect = container.getBoundingClientRect();
+
+  const { pageY } = pointerInfos;
 
   const arrayOfAxis = [
     // {
     //   axisName: "x",
     //   computedOffset: clamp(
     //     0,
-    //     event.detail.pageX - pointerInfos.initialXAnchor,
+    //     pageX - pointerInfos.initialXAnchor,
     //     containerDomRect.width
     //   ),
     // },
@@ -371,7 +464,7 @@ container.addEventListener("custom:draggable-move", (event: CustomEvent) => {
       axisName: "y",
       computedOffset: clamp(
         0,
-        event.detail.pageY - pointerInfos.initialYAnchor,
+        pageY - pointerInfos.initialYAnchor,
         containerDomRect.height
       ),
     },
@@ -388,11 +481,9 @@ container.addEventListener("custom:draggable-move", (event: CustomEvent) => {
       draggedItem.y = computedOffset;
     }
   }
-
-  // TODO: Add logic to scroll up and down the body if dragging a card at 15% of the viewport (up) or 85% of the viewport (down) here (mustn't forget to add multiple thresholds to control scrolling speed)
 });
 
-container.addEventListener("custom:draggable-scroll-up", () => {
+container.addEventListener("custom:draggable-switch-up", () => {
   const draggedElement = pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
     return;
@@ -412,7 +503,7 @@ container.addEventListener("custom:draggable-scroll-up", () => {
   handleSwap(draggedItemIndex, "up");
 });
 
-container.addEventListener("custom:draggable-scroll-down", () => {
+container.addEventListener("custom:draggable-switch-down", () => {
   const draggedElement: HTMLElement =
     pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
@@ -537,20 +628,4 @@ function swapItems(
     targetItem,
     draggableItems,
   });
-}
-
-function handleSize(draggedElement: HTMLElement): void {
-  const gap: number = getNumberFromCssStringValue(
-    getStyleProperty("gap", container)
-  );
-  const height: number = getNumberFromCssStringValue(
-    getStyleProperty("--_height", draggedElement)
-  );
-
-  for (let i = 0; i < draggableItems.length; i++) {
-    const item: DraggableItem = draggableItems[i];
-    const newY: number = i * (height + gap);
-    item.y = newY;
-    item.element.style.setProperty("--_y", `${newY}px`);
-  }
 }
