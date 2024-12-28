@@ -14,7 +14,7 @@
 
     position: relative;
 
-    --_cards-in-container: 25;
+    --_cards-in-container: 250;
     --_container-gap: 10px;
     --_draggable-card-height: 115px;
 
@@ -48,9 +48,11 @@
 
     background-color: grey;
 
-    transition: top var(--_draggable-transition-duration) ease-in-out, filter var(--_draggable-transition-duration) ease-in-out;
+    transition: top var(--_draggable-transition-duration) var(--_draggable-transition-easing), filter var(--_draggable-transition-duration) var(--_draggable-transition-easing);
 
+    --_draggable-transition-easing: cubic-bezier(0.2, 0, 0, 1);
     --_draggable-transition-duration: 250ms;
+
     --_draggable-handle-width: 100px;
 
     --_draggable-item-count-x-offset: 15px;
