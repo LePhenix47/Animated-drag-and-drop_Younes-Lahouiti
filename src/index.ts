@@ -248,7 +248,7 @@ function handlePointerMove(event: PointerEvent): void {
 
   const { movementY } = event;
 
-  dispatchCustomEvent("custom:draggable-move", container, {
+  dispatchCustomEvent("custom:draggable-drag-move", container, {
     detail: {
       movementY,
     },
@@ -396,7 +396,7 @@ function checkScrollingWhileDragging() {
     pointerInfos.pageY = window.scrollY + clientY;
 
     // Emit pointermove event to update draggable position and other interactions
-    dispatchCustomEvent("custom:draggable-move", container, {
+    dispatchCustomEvent("custom:draggable-drag-move", container, {
       detail: {
         movementY: yOffsetFromScreenCenter,
       },
@@ -438,10 +438,10 @@ container.addEventListener("custom:draggable-drag-start", () => {
 
   log("Pointer info down ↓:", pointerInfos);
 
-  dispatchCustomEvent("custom:draggable-hold", container);
+  dispatchCustomEvent("custom:draggable-drag-hold", container);
 });
 
-container.addEventListener("custom:draggable-hold", () => {
+container.addEventListener("custom:draggable-drag-hold", () => {
   if (rAFId) {
     return;
   }
@@ -450,7 +450,7 @@ container.addEventListener("custom:draggable-hold", () => {
 });
 
 container.addEventListener(
-  "custom:draggable-move",
+  "custom:draggable-drag-move",
   (event: CustomEvent<DraggableMoveEvent>) => {
     // * Switch top or bottom draggable position
     const { movementY } = event.detail;
