@@ -167,11 +167,11 @@ function userIsTouchingScreen(event: PointerEvent): boolean {
   return event.pointerType === "touch";
 }
 
-container.addEventListener("pointerup", handlePointerLeave);
 container.addEventListener("pointerdown", handlePointerDown);
 container.addEventListener("pointermove", handlePointerMove);
-container.addEventListener("pointercancel", handlePointerCancel);
+container.addEventListener("pointerup", handlePointerLeave);
 container.addEventListener("pointerleave", handlePointerLeave);
+container.addEventListener("pointercancel", handlePointerCancel);
 
 /**
  * Handles the pointer cancel event.
@@ -221,45 +221,13 @@ function handlePointerDown(event: PointerEvent): void {
     return;
   }
 
-  const { parentElement } = element;
-
-  const dragginCardClassesToAdd = ["dragging", "keep-high-z-index"] as const;
-
-  for (const draggingClass of dragginCardClassesToAdd) {
-    parentElement.classList.add(draggingClass);
-  }
-
-  const draggableDomRect: DOMRect = parentElement!.getBoundingClientRect();
-  const containerDomRect: DOMRect = container.getBoundingClientRect();
-
-  const computedXAnchor: number =
-    event.pageX + containerDomRect.x - draggableDomRect.x;
-  const computedYAnchor: number =
-    event.pageY + containerDomRect.y - draggableDomRect.y;
-
-  pointerInfos.initialXAnchor = clamp(
-    0,
-    computedXAnchor,
-    containerDomRect.width
-  );
-
-  pointerInfos.initialYAnchor = clamp(
-    0,
-    computedYAnchor,
-    containerDomRect.height
-  );
-
-  log("Pointer info down ↓:", pointerInfos);
-
-  if (!rAFId) {
-    rAFId = requestAnimationFrame(handleScrollAndPointerMove);
-  }
+  dispatchCustomEvent("custom:draggable-drag-start", container);
 }
 
 /**
  * Handles the pointermove event.
  *
- * When the user moves the pointer, this function is called and it will either dispatch a "custom:draggable-switch-down" or "custom:draggable-switch-up" event if the user has scrolled down or up respectively.
+ * When the user moves the pointer, this function is called and it will either dispatch a "custom:draggable-swap-down" or "custom:draggable-swap-up" event if the user has scrolled down or up respectively.
  *
  * If the user has not scrolled up or down, it will not dispatch any event.
  *
@@ -279,9 +247,9 @@ function handlePointerMove(event: PointerEvent): void {
   const hasScrolledUp: boolean = event.movementY < 0;
 
   if (hasScrolledDown) {
-    dispatchCustomEvent("custom:draggable-switch-down", container);
+    dispatchCustomEvent("custom:draggable-swap-down", container);
   } else if (hasScrolledUp) {
-    dispatchCustomEvent("custom:draggable-switch-up", container);
+    dispatchCustomEvent("custom:draggable-swap-up", container);
   } else {
     console.log("No Y direction change while dragging");
   }
@@ -394,13 +362,8 @@ function handlePointerLeave(event: PointerEvent): void {
     pointerInfos.pressedElement.parentElement?.hasAttribute("draggable");
 
   if (hadPreviouslyClickedOnDraggable) {
-    snapReleasedCardIntoPlace();
+    dispatchCustomEvent("custom:draggable-drag-end", container);
   }
-
-  pointerInfos.pressedElement = null;
-
-  cancelAnimationFrame(rAFId);
-  rAFId = null;
 }
 
 /**
@@ -444,6 +407,47 @@ function snapReleasedCardIntoPlace(): void {
 /*
  * CUSTOM EVENT LISTENERS
  */
+container.addEventListener("custom:draggable-drag-start", () => {
+  const { parentElement } = pointerInfos.pressedElement!;
+
+  const dragginCardClassesToAdd = ["dragging", "keep-high-z-index"] as const;
+
+  for (const draggingClass of dragginCardClassesToAdd) {
+    parentElement.classList.add(draggingClass);
+  }
+
+  const draggableDomRect: DOMRect = parentElement!.getBoundingClientRect();
+  const containerDomRect: DOMRect = container.getBoundingClientRect();
+
+  const computedXAnchor: number =
+    pointerInfos.pageX + containerDomRect.x - draggableDomRect.x;
+  const computedYAnchor: number =
+    pointerInfos.pageY + containerDomRect.y - draggableDomRect.y;
+
+  pointerInfos.initialXAnchor = clamp(
+    0,
+    computedXAnchor,
+    containerDomRect.width
+  );
+
+  pointerInfos.initialYAnchor = clamp(
+    0,
+    computedYAnchor,
+    containerDomRect.height
+  );
+
+  log("Pointer info down ↓:", pointerInfos);
+
+  dispatchCustomEvent("custom:draggable-hold", container);
+});
+
+container.addEventListener("custom:draggable-hold", () => {
+  if (rAFId) {
+    return;
+  }
+
+  rAFId = requestAnimationFrame(handleScrollAndPointerMove);
+});
 
 container.addEventListener("custom:draggable-move", () => {
   // * Changing the draggable Y positon to follow the cursor
@@ -483,7 +487,7 @@ container.addEventListener("custom:draggable-move", () => {
   }
 });
 
-container.addEventListener("custom:draggable-switch-up", () => {
+container.addEventListener("custom:draggable-swap-up", () => {
   const draggedElement = pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
     return;
@@ -503,7 +507,7 @@ container.addEventListener("custom:draggable-switch-up", () => {
   handleSwap(draggedItemIndex, "up");
 });
 
-container.addEventListener("custom:draggable-switch-down", () => {
+container.addEventListener("custom:draggable-swap-down", () => {
   const draggedElement: HTMLElement =
     pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
@@ -524,6 +528,18 @@ container.addEventListener("custom:draggable-switch-down", () => {
   handleSwap(draggedItemIndex, "down");
 });
 
+container.addEventListener("custom:draggable-drag-end", () => {
+  snapReleasedCardIntoPlace();
+
+  pointerInfos.pressedElement = null;
+
+  if (!rAFId) {
+    return;
+  }
+
+  cancelAnimationFrame(rAFId);
+  rAFId = null;
+});
 /*
  * SWAPPING LOGIC
  */
