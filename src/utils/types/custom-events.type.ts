@@ -1,3 +1,1 @@
-export type DraggableMoveEvent = Partial<
-  Pick<PointerEvent, "pageX" | "pageY" | "clientX" | "clientY">
->;
+export type DraggableMoveEvent = Required<Pick<PointerEvent, "movementY">>;

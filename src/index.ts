@@ -18,9 +18,6 @@ import { DraggableMoveEvent } from "@utils/types/custom-events.type";
 
 const { log } = console;
 
-// TODO: Add the abily to scroll while dragging a card in desktop and mobile (just like in Apple)
-// TODO: Listen to a media query to update the cards Y position + corresponding item
-
 /*
 Adding more cards to the container
 */
@@ -173,6 +170,15 @@ container.addEventListener("pointerup", handlePointerLeave);
 container.addEventListener("pointerleave", handlePointerLeave);
 container.addEventListener("pointercancel", handlePointerCancel);
 
+function updateGlobalPointerInfosFromEvent(event: PointerEvent) {
+  const { pageX, pageY, clientX, clientY } = event;
+
+  pointerInfos.pageX = pageX;
+  pointerInfos.pageY = pageY;
+  pointerInfos.clientX = clientX;
+  pointerInfos.clientY = clientY;
+}
+
 /**
  * Handles the pointer cancel event.
  *
@@ -201,12 +207,7 @@ let rAFId: number | null = null;
 function handlePointerDown(event: PointerEvent): void {
   event.preventDefault();
 
-  const { pageX, pageY, clientX, clientY } = event;
-
-  pointerInfos.pageX = pageX;
-  pointerInfos.pageY = pageY;
-  pointerInfos.clientX = clientX;
-  pointerInfos.clientY = clientY;
+  updateGlobalPointerInfosFromEvent(event);
 
   pointerInfos.isPressing =
     userIsHoldingLeftClick(event) || userIsTouchingScreen(event);
@@ -227,7 +228,7 @@ function handlePointerDown(event: PointerEvent): void {
 /**
  * Handles the pointermove event.
  *
- * When the user moves the pointer, this function is called and it will either dispatch a "custom:draggable-swap-down" or "custom:draggable-swap-up" event if the user has scrolled down or up respectively.
+ * When the user moves the pointer, this function is called and it will either dispatch a "custom:draggable-check-swap-down" or "custom:draggable-check-swap-up" event if the user has scrolled down or up respectively.
  *
  * If the user has not scrolled up or down, it will not dispatch any event.
  *
@@ -243,31 +244,15 @@ function handlePointerMove(event: PointerEvent): void {
     return;
   }
 
-  const { pageX, pageY, clientX, clientY, movementY } = event;
+  updateGlobalPointerInfosFromEvent(event);
 
-  pointerInfos.pageX = pageX;
-  pointerInfos.pageY = pageY;
-  pointerInfos.clientX = clientX;
-  pointerInfos.clientY = clientY;
-
-  const hasScrolledDown: boolean = event.movementY > 0;
-  const hasScrolledUp: boolean = event.movementY < 0;
-
-  if (hasScrolledDown) {
-    dispatchCustomEvent("custom:draggable-swap-down", container);
-  } else if (hasScrolledUp) {
-    dispatchCustomEvent("custom:draggable-swap-up", container);
-  } else {
-    console.log("No Y direction change while dragging");
-  }
+  const { movementY } = event;
 
   dispatchCustomEvent("custom:draggable-move", container, {
-    // detail: {
-    //   movementY,
-    // },
+    detail: {
+      movementY,
+    },
   });
-
-  // checkScrollingWhileDragging(clientY);
 }
 
 /**
@@ -350,20 +335,18 @@ function handleScrollAndPointerMove() {
 
 /**
  * Checks if the user is scrolling while dragging a card and, if so, scrolls the window accordingly.
- *
- * @param {number} clientY - The clientY coordinate of the pointer.
  */
 function checkScrollingWhileDragging() {
   const { clientY } = pointerInfos;
 
   // Array of objects with thresholds and corresponding speeds
   const SCROLL_SETTINGS = [
-    { threshold: 0.55, speed: 5 },
-    { threshold: 0.6, speed: 10 },
-    { threshold: 0.65, speed: 15 },
-    { threshold: 0.7, speed: 20 },
-    { threshold: 0.8, speed: 40 },
-    { threshold: 0.9, speed: 80 },
+    { threshold: 0.55, speed: 1 },
+    { threshold: 0.6, speed: 2 },
+    { threshold: 0.65, speed: 4 },
+    { threshold: 0.7, speed: 10 },
+    { threshold: 0.8, speed: 25 },
+    { threshold: 0.9, speed: 100 },
   ] as const;
 
   const yOffsetRelativeToViewport: number =
@@ -413,7 +396,11 @@ function checkScrollingWhileDragging() {
     pointerInfos.pageY = window.scrollY + clientY;
 
     // Emit pointermove event to update draggable position and other interactions
-    dispatchCustomEvent("custom:draggable-move", container);
+    dispatchCustomEvent("custom:draggable-move", container, {
+      detail: {
+        movementY: yOffsetFromScreenCenter,
+      },
+    });
   }
 }
 
@@ -462,47 +449,62 @@ container.addEventListener("custom:draggable-hold", () => {
   rAFId = requestAnimationFrame(handleScrollAndPointerMove);
 });
 
-container.addEventListener("custom:draggable-move", () => {
-  // * Changing the draggable Y positon to follow the cursor
-  const containerDomRect: DOMRect = container.getBoundingClientRect();
+container.addEventListener(
+  "custom:draggable-move",
+  (event: CustomEvent<DraggableMoveEvent>) => {
+    // * Switch top or bottom draggable position
+    const { movementY } = event.detail;
 
-  const { pageY } = pointerInfos;
-  log(pointerInfos.pageY);
+    const hasScrolledDown: boolean = movementY > 0;
+    const hasScrolledUp: boolean = movementY < 0;
 
-  const arrayOfAxis = [
-    // {
-    //   axisName: "x",
-    //   computedOffset: clamp(
-    //     0,
-    //     pageX - pointerInfos.initialXAnchor,
-    //     containerDomRect.width
-    //   ),
-    // },
-    {
-      axisName: "y",
-      computedOffset: clamp(
-        0,
-        pageY - pointerInfos.initialYAnchor,
-        containerDomRect.height
-      ),
-    },
-  ];
-  log(pageY);
+    if (hasScrolledDown) {
+      dispatchCustomEvent("custom:draggable-check-swap-down", container);
+    } else if (hasScrolledUp) {
+      dispatchCustomEvent("custom:draggable-check-swap-up", container);
+    } else {
+      console.log("No Y direction change while dragging");
+    }
 
-  for (const axis of arrayOfAxis) {
-    const { axisName, computedOffset } = axis;
+    // * Changing the draggable Y positon to follow the cursor
+    const containerDomRect: DOMRect = container.getBoundingClientRect();
 
-    const { parentElement } = pointerInfos.pressedElement!;
-    parentElement!.style.setProperty(`--_${axisName}`, `${computedOffset}px`);
+    const { pageY } = pointerInfos;
 
-    const draggedItem: DraggableItem = getDraggableItem(parentElement!);
-    if (draggedItem) {
-      draggedItem.y = computedOffset;
+    const arrayOfAxis = [
+      // {
+      //   axisName: "x",
+      //   computedOffset: clamp(
+      //     0,
+      //     pageX - pointerInfos.initialXAnchor,
+      //     containerDomRect.width
+      //   ),
+      // },
+      {
+        axisName: "y",
+        computedOffset: clamp(
+          0,
+          pageY - pointerInfos.initialYAnchor,
+          containerDomRect.height
+        ),
+      },
+    ];
+
+    for (const axis of arrayOfAxis) {
+      const { axisName, computedOffset } = axis;
+
+      const { parentElement } = pointerInfos.pressedElement!;
+      parentElement!.style.setProperty(`--_${axisName}`, `${computedOffset}px`);
+
+      const draggedItem: DraggableItem = getDraggableItem(parentElement!);
+      if (draggedItem) {
+        draggedItem.y = computedOffset;
+      }
     }
   }
-});
+);
 
-container.addEventListener("custom:draggable-swap-up", () => {
+container.addEventListener("custom:draggable-check-swap-up", () => {
   const draggedElement = pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
     return;
@@ -522,7 +524,7 @@ container.addEventListener("custom:draggable-swap-up", () => {
   handleSwap(draggedItemIndex, "up");
 });
 
-container.addEventListener("custom:draggable-swap-down", () => {
+container.addEventListener("custom:draggable-check-swap-down", () => {
   const draggedElement: HTMLElement =
     pointerInfos.pressedElement?.parentElement;
   if (!draggedElement) {
