@@ -243,6 +243,13 @@ function handlePointerMove(event: PointerEvent): void {
     return;
   }
 
+  const { pageX, pageY, clientX, clientY, movementY } = event;
+
+  pointerInfos.pageX = pageX;
+  pointerInfos.pageY = pageY;
+  pointerInfos.clientX = clientX;
+  pointerInfos.clientY = clientY;
+
   const hasScrolledDown: boolean = event.movementY > 0;
   const hasScrolledUp: boolean = event.movementY < 0;
 
@@ -254,89 +261,13 @@ function handlePointerMove(event: PointerEvent): void {
     console.log("No Y direction change while dragging");
   }
 
-  const { pageX, pageY, clientX, clientY } = event;
-
-  pointerInfos.pageX = pageX;
-  pointerInfos.pageY = pageY;
-  pointerInfos.clientX = clientX;
-  pointerInfos.clientY = clientY;
-
-  dispatchCustomEvent("custom:draggable-move", container);
+  dispatchCustomEvent("custom:draggable-move", container, {
+    // detail: {
+    //   movementY,
+    // },
+  });
 
   // checkScrollingWhileDragging(clientY);
-}
-
-/**
- * rAF loop function to handle scrolling and emitting pointermove events.
- *
- * This function is continuously called during dragging to check scroll thresholds
- * and emit pointermove events to keep the draggable element following the cursor.
- */
-function handleScrollAndPointerMove() {
-  checkScrollingWhileDragging();
-  // Emit pointermove event to update draggable position and other interactions
-  dispatchCustomEvent("custom:draggable-move", container);
-  // Continue the rAF loop
-  rAFId = requestAnimationFrame(handleScrollAndPointerMove);
-}
-
-/**
- * Checks if the user is scrolling while dragging a card and, if so, scrolls the window accordingly.
- *
- * @param {number} clientY - The clientY coordinate of the pointer.
- */
-function checkScrollingWhileDragging() {
-  const { clientY } = pointerInfos;
-
-  // Array of objects with thresholds and corresponding speeds
-  const SCROLL_SETTINGS = [
-    { threshold: 0.55, speed: 5 },
-    { threshold: 0.6, speed: 10 },
-    { threshold: 0.65, speed: 15 },
-    { threshold: 0.7, speed: 20 },
-    { threshold: 0.8, speed: 40 },
-    { threshold: 0.9, speed: 100 },
-  ] as const;
-
-  const yOffsetRelativeToViewport: number =
-    getYOffsetRelativeToViewport(clientY);
-
-  // ? Value between [-100, 100], from the center
-  const yOffsetFromScreenCenter: number = (yOffsetRelativeToViewport - 50) * 2;
-  const isUnderMinThreshold =
-    Math.abs(yOffsetFromScreenCenter) < SCROLL_SETTINGS[0].threshold * 100;
-  if (isUnderMinThreshold) {
-    return;
-  }
-
-  let scrollDirection: 1 | -1 | 0 = 0;
-  if (yOffsetFromScreenCenter > 0) {
-    scrollDirection = 1;
-  } else if (yOffsetFromScreenCenter < 0) {
-    scrollDirection = -1;
-  }
-
-  // Compute the scroll speed based on thresholds
-  let scrollSpeed = 0;
-
-  for (let i = 0; i < SCROLL_SETTINGS.length; i++) {
-    const { threshold: currentThreshold, speed } = SCROLL_SETTINGS[i];
-
-    const nextThreshold = SCROLL_SETTINGS[i + 1]?.threshold ?? Infinity;
-
-    const isWithinThresholdRange: boolean =
-      Math.abs(yOffsetFromScreenCenter) >= currentThreshold * 100 &&
-      Math.abs(yOffsetFromScreenCenter) < nextThreshold * 100;
-    if (isWithinThresholdRange) {
-      scrollSpeed = speed;
-      break;
-    }
-  }
-
-  // Apply scrolling if a valid speed is set
-  if (scrollSpeed > 0) {
-    window.scrollBy(0, scrollSpeed * scrollDirection);
-  }
 }
 
 /**
@@ -404,6 +335,88 @@ function snapReleasedCardIntoPlace(): void {
   console.table(draggableItems);
 }
 
+/**
+ * rAF loop function to handle scrolling and emitting pointermove events.
+ *
+ * This function is continuously called during dragging to check scroll thresholds
+ * and emit pointermove events to keep the draggable element following the cursor.
+ */
+function handleScrollAndPointerMove() {
+  checkScrollingWhileDragging();
+
+  // Continue the rAF loop
+  rAFId = requestAnimationFrame(handleScrollAndPointerMove);
+}
+
+/**
+ * Checks if the user is scrolling while dragging a card and, if so, scrolls the window accordingly.
+ *
+ * @param {number} clientY - The clientY coordinate of the pointer.
+ */
+function checkScrollingWhileDragging() {
+  const { clientY } = pointerInfos;
+
+  // Array of objects with thresholds and corresponding speeds
+  const SCROLL_SETTINGS = [
+    { threshold: 0.55, speed: 5 },
+    { threshold: 0.6, speed: 10 },
+    { threshold: 0.65, speed: 15 },
+    { threshold: 0.7, speed: 20 },
+    { threshold: 0.8, speed: 40 },
+    { threshold: 0.9, speed: 80 },
+  ] as const;
+
+  const yOffsetRelativeToViewport: number =
+    getYOffsetRelativeToViewport(clientY);
+
+  // ? Value between [-100, 100], from the center
+  const yOffsetFromScreenCenter: number = (yOffsetRelativeToViewport - 50) * 2;
+  const isUnderMinThreshold =
+    Math.abs(yOffsetFromScreenCenter) < SCROLL_SETTINGS[0]?.threshold * 100;
+  if (isUnderMinThreshold) {
+    return;
+  }
+
+  let scrollDirection: 1 | -1 | 0 = 0;
+  if (yOffsetFromScreenCenter > 0) {
+    scrollDirection = 1;
+  } else if (yOffsetFromScreenCenter < 0) {
+    scrollDirection = -1;
+  }
+
+  // Compute the scroll speed based on thresholds
+  let scrollSpeed = 0;
+
+  for (let i = 0; i < SCROLL_SETTINGS.length; i++) {
+    const { threshold: currentThreshold, speed } = SCROLL_SETTINGS[i];
+
+    const nextThreshold = SCROLL_SETTINGS[i + 1]?.threshold ?? Infinity;
+
+    const isWithinThresholdRange: boolean =
+      Math.abs(yOffsetFromScreenCenter) >= currentThreshold * 100 &&
+      Math.abs(yOffsetFromScreenCenter) < nextThreshold * 100;
+    if (isWithinThresholdRange) {
+      scrollSpeed = speed;
+      break;
+    }
+  }
+
+  // Apply scrolling if a valid speed is set
+  if (scrollSpeed > 0) {
+    // Increment the accumulated offset based on speed and direction
+    // Use window.scrollTo with the accumulated offset for smooth behavior
+    window.scrollTo({
+      top: window.scrollY + scrollSpeed * scrollDirection,
+      behavior: "instant",
+    });
+
+    pointerInfos.pageY = window.scrollY + clientY;
+
+    // Emit pointermove event to update draggable position and other interactions
+    dispatchCustomEvent("custom:draggable-move", container);
+  }
+}
+
 /*
  * CUSTOM EVENT LISTENERS
  */
@@ -454,6 +467,7 @@ container.addEventListener("custom:draggable-move", () => {
   const containerDomRect: DOMRect = container.getBoundingClientRect();
 
   const { pageY } = pointerInfos;
+  log(pointerInfos.pageY);
 
   const arrayOfAxis = [
     // {
@@ -473,6 +487,7 @@ container.addEventListener("custom:draggable-move", () => {
       ),
     },
   ];
+  log(pageY);
 
   for (const axis of arrayOfAxis) {
     const { axisName, computedOffset } = axis;
@@ -518,7 +533,7 @@ container.addEventListener("custom:draggable-swap-down", () => {
     (item) => item.id === draggedElement.getAttribute("data-draggable-id")
   );
 
-  const isLastItem: boolean = draggedItemIndex > draggableItems.length - 1;
+  const isLastItem: boolean = draggedItemIndex === draggableItems.length - 1;
   const itemHasNotBeenFound = draggedItemIndex < 0;
   if (itemHasNotBeenFound || isLastItem) {
     return;
